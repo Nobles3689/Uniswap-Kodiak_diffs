@@ -1,0 +1,100 @@
+--- /Users/tamaneko/upside/Project-BearMoon/uniswap-original/v3-core/contracts/UniswapV3Pool.sol	2025-05-15 10:53:20
++++ /Users/tamaneko/upside/Project-BearMoon/kodiak-contracts/UniswapV3Factory/src/pools/v3-core/UniswapV3Pool.sol	2025-05-13 12:15:27
+@@ -1,10 +1,8 @@
+-// SPDX-License-Identifier: BUSL-1.1
++// SPDX-License-Identifier: GPL-2.0-or-later
+ pragma solidity =0.7.6;
+ 
+ import './interfaces/IUniswapV3Pool.sol';
+ 
+-import './NoDelegateCall.sol';
+-
+ import './libraries/LowGasSafeMath.sol';
+ import './libraries/SafeCast.sol';
+ import './libraries/Tick.sol';
+@@ -27,7 +25,7 @@
+ import './interfaces/callback/IUniswapV3SwapCallback.sol';
+ import './interfaces/callback/IUniswapV3FlashCallback.sol';
+ 
+-contract UniswapV3Pool is IUniswapV3Pool, NoDelegateCall {
++contract UniswapV3Pool is IUniswapV3Pool {
+     using LowGasSafeMath for uint256;
+     using LowGasSafeMath for int256;
+     using SafeCast for uint256;
+@@ -53,6 +51,9 @@
+     /// @inheritdoc IUniswapV3PoolImmutables
+     uint128 public immutable override maxLiquidityPerTick;
+ 
++    uint32  internal constant PROTOCOL_FEE_SP = 65536;
++    uint256 internal constant PROTOCOL_FEE_DENOMINATOR = 10000;
++
+     struct Slot0 {
+         // the current price
+         uint160 sqrtPriceX96;
+@@ -66,7 +67,7 @@
+         uint16 observationCardinalityNext;
+         // the current protocol fee as a percentage of the swap fee taken on withdrawal
+         // represented as an integer denominator (1/x)%
+-        uint8 feeProtocol;
++        uint32 feeProtocol;
+         // whether the pool is locked
+         bool unlocked;
+     }
+@@ -159,7 +160,6 @@
+         external
+         view
+         override
+-        noDelegateCall
+         returns (
+             int56 tickCumulativeInside,
+             uint160 secondsPerLiquidityInsideX128,
+@@ -237,7 +237,6 @@
+         external
+         view
+         override
+-        noDelegateCall
+         returns (int56[] memory tickCumulatives, uint160[] memory secondsPerLiquidityCumulativeX128s)
+     {
+         return
+@@ -256,7 +255,6 @@
+         external
+         override
+         lock
+-        noDelegateCall
+     {
+         uint16 observationCardinalityNextOld = slot0.observationCardinalityNext; // for the event
+         uint16 observationCardinalityNextNew =
+@@ -274,6 +272,7 @@
+         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
+ 
+         (uint16 cardinality, uint16 cardinalityNext) = observations.initialize(_blockTimestamp());
++        uint32 feeProtocol = IUniswapV3Factory(factory).defaultFeeProtocol();
+ 
+         slot0 = Slot0({
+             sqrtPriceX96: sqrtPriceX96,
+@@ -281,7 +280,7 @@
+             observationIndex: 0,
+             observationCardinality: cardinality,
+             observationCardinalityNext: cardinalityNext,
+-            feeProtocol: 0,
++            feeProtocol: feeProtocol,
+             unlocked: true
+         });
+ 
+@@ -305,7 +304,6 @@
+     /// @return amount1 the amount of token1 owed to the pool, negative if the pool should pay the recipient
+     function _modifyPosition(ModifyPositionParams memory params)
+         private
+-        noDelegateCall
+         returns (
+             Position.Info storage position,
+             int256 amount0,
+@@ -544,7 +542,7 @@
+ 
+     struct SwapCache {
+         // the protocol fee for the input token
+-        uint8 feeProtocol;
++        uint32 feeProtocol;
+         // liquidity at the beginning of the swap
+         uint128 liquidityStart;
+         // the timestamp of the current block

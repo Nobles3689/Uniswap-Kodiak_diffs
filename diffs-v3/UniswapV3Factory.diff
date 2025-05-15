@@ -1,0 +1,73 @@
+--- /Users/tamaneko/upside/Project-BearMoon/uniswap-original/v3-core/contracts/UniswapV3Factory.sol	2025-05-15 10:53:20
++++ /Users/tamaneko/upside/Project-BearMoon/kodiak-contracts/UniswapV3Factory/src/pools/v3-core/UniswapV3Factory.sol	2025-05-13 12:15:27
+@@ -1,20 +1,22 @@
+-// SPDX-License-Identifier: BUSL-1.1
++// SPDX-License-Identifier: GPL-2.0-or-later
+ pragma solidity =0.7.6;
+ 
+ import './interfaces/IUniswapV3Factory.sol';
+ 
+ import './UniswapV3PoolDeployer.sol';
+-import './NoDelegateCall.sol';
+ 
+ import './UniswapV3Pool.sol';
+ 
+ /// @title Canonical Uniswap V3 factory
+ /// @notice Deploys Uniswap V3 pools and manages ownership and control over pool protocol fees
+-contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer, NoDelegateCall {
++contract UniswapV3Factory is IUniswapV3Factory, UniswapV3PoolDeployer {
+     /// @inheritdoc IUniswapV3Factory
+     address public override owner;
+ 
+     /// @inheritdoc IUniswapV3Factory
++    uint32 public override defaultFeeProtocol;
++
++    /// @inheritdoc IUniswapV3Factory
+     mapping(uint24 => int24) public override feeAmountTickSpacing;
+     /// @inheritdoc IUniswapV3Factory
+     mapping(address => mapping(address => mapping(uint24 => address))) public override getPool;
+@@ -23,12 +25,16 @@
+         owner = msg.sender;
+         emit OwnerChanged(address(0), msg.sender);
+ 
++        feeAmountTickSpacing[100] = 1;
++        emit FeeAmountEnabled(100, 1);
+         feeAmountTickSpacing[500] = 10;
+         emit FeeAmountEnabled(500, 10);
+         feeAmountTickSpacing[3000] = 60;
+         emit FeeAmountEnabled(3000, 60);
+         feeAmountTickSpacing[10000] = 200;
+         emit FeeAmountEnabled(10000, 200);
++
++        defaultFeeProtocol = 229379500; //35%, 35%
+     }
+ 
+     /// @inheritdoc IUniswapV3Factory
+@@ -36,7 +42,7 @@
+         address tokenA,
+         address tokenB,
+         uint24 fee
+-    ) external override noDelegateCall returns (address pool) {
++    ) external override returns (address pool) {
+         require(tokenA != tokenB);
+         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
+         require(token0 != address(0));
+@@ -57,6 +63,11 @@
+         owner = _owner;
+     }
+ 
++    function setDefaultFeeProtocol(uint32 _fee) external override {
++        require(msg.sender == owner);
++        defaultFeeProtocol = _fee;
++    }
++
+     /// @inheritdoc IUniswapV3Factory
+     function enableFeeAmount(uint24 fee, int24 tickSpacing) public override {
+         require(msg.sender == owner);
+@@ -70,4 +81,4 @@
+         feeAmountTickSpacing[fee] = tickSpacing;
+         emit FeeAmountEnabled(fee, tickSpacing);
+     }
+-}
++}
+\ No newline at end of file

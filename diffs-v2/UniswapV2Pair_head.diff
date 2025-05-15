@@ -1,0 +1,50 @@
+--- /Users/tamaneko/upside/Project-BearMoon/uniswap-original/v2-core/contracts/UniswapV2Pair.sol	2025-05-15 10:53:14
++++ /Users/tamaneko/upside/Project-BearMoon/kodiak-contracts/UniswapV2Factory/src/pools/v2-core/UniswapV2Pair.sol	2025-05-13 12:16:48
+@@ -1,4 +1,4 @@
+-pragma solidity =0.5.16;
++pragma solidity =0.8.19;
+ 
+ import './interfaces/IUniswapV2Pair.sol';
+ import './UniswapV2ERC20.sol';
+@@ -8,7 +8,7 @@
+ import './interfaces/IUniswapV2Factory.sol';
+ import './interfaces/IUniswapV2Callee.sol';
+ 
+-contract UniswapV2Pair is IUniswapV2Pair, UniswapV2ERC20 {
++contract UniswapV2Pair is UniswapV2ERC20 {
+     using SafeMath  for uint;
+     using UQ112x112 for uint224;
+ 
+@@ -58,7 +58,7 @@
+     );
+     event Sync(uint112 reserve0, uint112 reserve1);
+ 
+-    constructor() public {
++    constructor() UniswapV2ERC20() {
+         factory = msg.sender;
+     }
+ 
+@@ -71,7 +71,7 @@
+ 
+     // update reserves and, on the first call per block, price accumulators
+     function _update(uint balance0, uint balance1, uint112 _reserve0, uint112 _reserve1) private {
+-        require(balance0 <= uint112(-1) && balance1 <= uint112(-1), 'UniswapV2: OVERFLOW');
++        require(balance0 <= type(uint112).max && balance1 <= type(uint112).max, 'UniswapV2: OVERFLOW');
+         uint32 blockTimestamp = uint32(block.timestamp % 2**32);
+         uint32 timeElapsed = blockTimestamp - blockTimestampLast; // overflow is desired
+         if (timeElapsed > 0 && _reserve0 != 0 && _reserve1 != 0) {
+@@ -115,12 +115,12 @@
+         uint amount1 = balance1.sub(_reserve1);
+ 
+         bool feeOn = _mintFee(_reserve0, _reserve1);
+-        uint _totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
+-        if (_totalSupply == 0) {
++        uint totalSupply = totalSupply; // gas savings, must be defined here since totalSupply can update in _mintFee
++        if (totalSupply == 0) {
+             liquidity = Math.sqrt(amount0.mul(amount1)).sub(MINIMUM_LIQUIDITY);
+            _mint(address(0), MINIMUM_LIQUIDITY); // permanently lock the first MINIMUM_LIQUIDITY tokens
+         } else {
+-            liquidity = Math.min(amount0.mul(_totalSupply) / _reserve0, amount1.mul(_totalSupply) / _reserve1);
++            liquidity = Math.min(amount0.mul(totalSupply) / _reserve0, amount1.mul(totalSupply) / _reserve1);
+         }
+         require(liquidity > 0, 'UniswapV2: INSUFFICIENT_LIQUIDITY_MINTED');

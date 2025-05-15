@@ -1,0 +1,8 @@
+--- /Users/tamaneko/upside/Project-BearMoon/uniswap-original/v2-core/contracts/interfaces/IUniswapV2Factory.sol	2025-05-15 10:53:14
++++ /Users/tamaneko/upside/Project-BearMoon/kodiak-contracts/UniswapV2Factory/src/pools/v2-core/interfaces/IUniswapV2Factory.sol	2025-05-13 12:16:48
+@@ -1,4 +1,4 @@
+-pragma solidity >=0.5.0;
++pragma solidity =0.8.19;
+ 
+ interface IUniswapV2Factory {
+     event PairCreated(address indexed token0, address indexed token1, address pair, uint);
